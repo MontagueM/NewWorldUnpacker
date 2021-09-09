@@ -85,10 +85,6 @@ def unpack():
             if entry.path_length == 0:
                 continue  # Sometimes ends with a 0 length path for some reason
             entry.path = fbin[offset+0x2E:offset+(0x2E+entry.path_length)].decode('ansi')
-            if entry.bitflags != 0x8 and entry.bitflags != 0x14:
-                # print(f'Skipping file {entry.path} as probably wrong, like in middle of chunk. Skipped {skipped}')
-                skipped.append(entry.path)
-                continue
             # entry.data_length_pre = gf.get_int32(fhex, offset + 0x14 * 2)
             # entry.data_length_post = gf.get_int32(fhex, offset + 0x18 * 2)
             entry.entrya_offset = gf.get_int32(fbin, offset + 0x2A)
@@ -101,7 +97,8 @@ def unpack():
             entry.path_length = gf.get_int32(fbin, ot+0x1A)
             entry.path = fbin[ot+0x1E:ot+(0x1E+entry.path_length)].decode('ansi')
             if entryb.path != entry.path:
-                raise Exception('ERROR PATHS DIFFER')
+                print('ERROR PATHS DIFFER')
+                continue
             else:
                 print('Path match', entry.path)
             entry.data_offset = ot + (0x1E + entry.path_length)
@@ -120,14 +117,14 @@ def unpack():
                     # No compression
                     entry.out_data = entry.data
                 else:
-                    raise Exception(f'New bitflag {entry.bitflags}')
+                    entry.out_data = decompressor.decompress(entry.data, entry.data_length_post)
                 if not entry.out_data:
                     raise Exception('DECOMP FAILED %%%%%%%%%%')
                 f.write(entry.out_data)
 
 
 if __name__ == '__main__':
-    direc = 'New World Alpha/assets/'
+    direc = 'New World Playtest/assets/'
     out_direc = 'unpacked_out/'
     gf.mkdir(out_direc)
     unpack()
