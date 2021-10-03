@@ -85,7 +85,7 @@ def unpack():
             if entry.path_length == 0:
                 continue  # Sometimes ends with a 0 length path for some reason
             entry.path = fbin[offset+0x2E:offset+(0x2E+entry.path_length)].decode('ansi')
-            if entry.bitflags != 0x8 and entry.bitflags != 0x14:
+            if entry.bitflags != 0x8 and entry.bitflags != 0x14 and entry.bitflags != 0x9:
                 # print(f'Skipping file {entry.path} as probably wrong, like in middle of chunk. Skipped {skipped}')
                 skipped.append(entry.path)
                 continue
@@ -115,6 +115,8 @@ def unpack():
             with open(f'{out_direc}/{entry.path}', 'wb') as f:
                 decompressor = OodleDecompressor('/oo2core_8_win64.dll')
                 if entryb.bitflags == 0x8:
+                    entry.out_data = decompressor.decompress(entry.data, entry.data_length_post)
+                elif entryb.bitflags == 0x9:
                     entry.out_data = decompressor.decompress(entry.data, entry.data_length_post)
                 elif entryb.bitflags == 0x14:   # 0xA is entryA
                     # No compression
