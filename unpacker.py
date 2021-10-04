@@ -75,6 +75,8 @@ def unpack():
         entriesB = []
 
         ret = [m.start() for m in re.finditer(b'\x50\x4B\x01\x02', fbin)]
+        ret += [m.start() for m in re.finditer(b'\x50\x4B\x03\x04', fbin)]
+
         if not ret:
             raise Exception('no ret')
         for offset in ret:
@@ -85,8 +87,8 @@ def unpack():
             if entry.path_length == 0:
                 continue  # Sometimes ends with a 0 length path for some reason
             entry.path = fbin[offset+0x2E:offset+(0x2E+entry.path_length)].decode('ansi')
-            if entry.bitflags != 0x8 and entry.bitflags != 0x14:
-                # print(f'Skipping file {entry.path} as probably wrong, like in middle of chunk. Skipped {skipped}')
+            if entry.bitflags != 0x8 and entry.bitflags != 0x14 and entry.bitflags != 0x9:
+                print(f'Skipping file {entry.path} as probably wrong, like in middle of chunk. Skipped {skipped}')
                 skipped.append(entry.path)
                 continue
             # entry.data_length_pre = gf.get_int32(fhex, offset + 0x14 * 2)
@@ -111,25 +113,27 @@ def unpack():
             entry.data = fbin[entry.data_offset:entry.data_offset+entry.data_length_pre]
             # Write
             path = f'{out_direc}/{"/".join(entry.path.split("/")[:-1])}'
-            gf.mkdir(path)
+            os.makedirs(path, exist_ok=True)
             with open(f'{out_direc}/{entry.path}', 'wb') as f:
                 decompressor = OodleDecompressor('/oo2core_8_win64.dll')
-                if entryb.bitflags == 0x8:
+                if entryb.bitflags == 0x8 or entryb.bitflags == 0x9:
                     entry.out_data = decompressor.decompress(entry.data, entry.data_length_post)
                 elif entryb.bitflags == 0x14:   # 0xA is entryA
                     # No compression
                     entry.out_data = entry.data
+                elif entryb.bitflags & 1:
+                    print("Unk bitflag 1")
                 else:
-                    raise Exception(f'New bitflag {entry.bitflags}')
+                    raise Exception(f'New bitflag {entryb.bitflags}')
                 if not entry.out_data:
                     raise Exception('DECOMP FAILED %%%%%%%%%%')
                 f.write(entry.out_data)
 
 
 if __name__ == '__main__':
-    direc = 'New World Alpha/assets/'
-    out_direc = 'unpacked_out/'
-    gf.mkdir(out_direc)
+    direc = 'G:/SteamLibrary/steamapps/common/New World Playtest/assets/'
+    out_direc = 'Z:/RE_OtherGames/NewWorld/unpack2/'
+    os.makedirs(out_direc, exist_ok=True)
     unpack()
+    print(f'Total skipped: {[x[:36] for x in skipped]}')
     input('Unpack done! Press any key to quit...')
-    # print(f'Total skipped: {[x[:36] for x in skipped]}')
