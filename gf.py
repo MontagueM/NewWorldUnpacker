@@ -9,6 +9,7 @@ def fill_hex_with_zeros(s, desired_length):
 def get_hex_data(direc):
     t = open(direc, 'rb')
     r = t.read()
+    t.close()
     return r
 
 
